@@ -156,6 +156,12 @@ if($action == 'update') {
         .answerbox {
             font-family: sans-serif; font-size: 14pt;
         }
+        .vspace {
+            /* This is used to modify the height of a <br/> element. */
+            display: block; /* makes it have a width */
+            content: ""; /* clears default height */
+            margin-top: 4pt; /* change this to whatever height you want it */
+        }
     </style>
     <script>
         function onSubmitEnter() {
@@ -329,7 +335,9 @@ if($action=='login') {
             // Display this question and the answer.
             echo "<tr><td class='qcolumn'>$qnum.</td>";
             echo "<td><span>" . htmlentities($qtext) . ":</span> ";
-            echo "<span class='answerbox'>" . htmlentities($answers[$qnum]) . "</span>";
+            $ans = htmlentities($answers[$qnum]);
+            $ans = str_replace("\n","<br class='vspace'/>", $ans);
+            echo "<span class='answerbox'>" . $ans . "</span>";
             echo "</td></tr>\n";
         }
         // Create a button to return to editing.
