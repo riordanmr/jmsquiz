@@ -6,16 +6,26 @@
 //   This is displayed when no value for "a" is provided.
 // - A page which shows all the questions, and controls for entering your answers.
 //   Displayed when a=show.
-// - An endpoint which receives periodic updates from the browser, when a user
+// - An endpoint which receives periodic JSON updates from the browser, when a user
 //   types answer text.
 //   Activated when a=update.
 // - A page which displays the questions and your answers in printer-ready format.
 //   Displayed when a=print.
+// - A secret page which lists all users who have answers on file.
+//   Displayed when a=listclients.
 //
 // Mark Riordan  riordan@rocketmail.com  2023-09-29
 
 // Include the database configuration file
 include_once("../../jmsquiz.config.php"); // Replace with the actual path to db_config.php
+
+function getPostedClientId() {
+    // Fetch jmsid from POSTed form.
+    $id = $_POST['jmsid'];
+    // Strip any non-alphanumeric chars.
+    $id = preg_replace("/[^a-zA-Z0-9]/", "", $id);
+    return $id;
+}
 
 function connectDb() {
     try {
@@ -25,6 +35,38 @@ function connectDb() {
         die("Database connection failed: " . $e->getMessage());
     }
     return $pdo;
+}
+
+// Return an array of answers from the database.
+// The array is indexed starting at 1.
+function getArrayOfAnswers($pdo, $jmsid) {
+    $answers = array();
+    $sql = "SELECT * FROM answers WHERE jmsid='$jmsid';";
+    try {
+        $stmt = $pdo->query($sql);
+        if($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            // We did fetch the answers for this user.
+            for($j=1; $j<=30; $j++) {
+                $answers[$j] = $row['a' . $j];
+            }
+        } else {
+            // This user's answers are not in the DB, so create a record for them.
+            $sql = "INSERT INTO answers (jmsid) VALUES (:jmsid)";
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindParam(':jmsid', $jmsid, PDO::PARAM_STR);
+                $stmt->execute();
+                for($j=1; $j<=30; $j++) {
+                    $answers[$j] = '';
+                }
+            } catch (PDOException $e) {
+                die("Error: " . $e->getMessage());
+            }
+        }
+    } catch (PDOException $e) {
+        die("Query failed: " . $e->getMessage());
+    }
+    return $answers;
 }
 
 $action = 'login';
@@ -124,6 +166,10 @@ if($action == 'update') {
             }
             return ok;
         }
+        function submitForm(formId) {
+            let form = document.getElementById(formId);
+            form.submit();
+        }
         var curQNum=0;
         const answers = [];
         function sendAnswerUpdate(id, myAnsText) {
@@ -195,7 +241,7 @@ if($action=='login') {
 <?php
 } else if($action=='show') {
     // Show the form with the questions.
-    $jmsid = $_POST['jmsid'];
+    $jmsid = getPostedClientId();
 ?>
 <span style="float:right">Client <span id='jmsid'><?php echo $jmsid;?></span></span>
 <h1>JMS Partners Career Exploration Exercise</h1>
@@ -210,32 +256,7 @@ if($action=='login') {
 
 <?php
     $pdo = connectDb();
-    $answers = array();
-    $sql = "SELECT * FROM answers WHERE jmsid='$jmsid';";
-    try {
-        $stmt = $pdo->query($sql);
-        if($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            // We did fetch the answers for this user.
-            for($j=1; $j<=30; $j++) {
-                $answers[$j] = $row['a' . $j];
-            }
-        } else {
-            // This user's answers are not in the DB, so create a record for them.
-            $sql = "INSERT INTO answers (jmsid) VALUES (:jmsid)";
-            try {
-                $stmt = $pdo->prepare($sql);
-                $stmt->bindParam(':jmsid', $jmsid, PDO::PARAM_STR);
-                $stmt->execute();
-                for($j=1; $j<=30; $j++) {
-                    $answers[$j] = '';
-                }
-            } catch (PDOException $e) {
-                die("Error: " . $e->getMessage());
-            }
-        }
-    } catch (PDOException $e) {
-        die("Query failed: " . $e->getMessage());
-    }
+    $answers = getArrayOfAnswers($pdo, $jmsid);
 
     // Fetch the questions and create the HTML displaying them.
     $sql = "SELECT qnum, qtext FROM questions ORDER BY qnum";
@@ -258,12 +279,12 @@ if($action=='login') {
     // Close the database connection
     $pdo = null;
     // Display a button to get to the printer-friendly page.
-    $jmsid = $_POST['jmsid'];
-    echo "<tr><td></td><td>";
+    $jmsid = getPostedClientId();
+    echo "<tr><td></td><td><br/>";
     echo '<form action="index.php?a=print" method="POST">';
     echo '<input type="hidden" name="jmsid" value="' . $jmsid . '">';
     echo '<input type="submit" class="button-3d" value="Show Printable Results">';
-    echo '</form>';
+    echo '</form></td></tr>';
 } else if($action=='listclients') {
     // Display a page listing the people who have taken the quiz.
 ?>
@@ -276,7 +297,9 @@ if($action=='login') {
         $stmt = $pdo->query($sql);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $clientid = $row['jmsid'];
-            echo "<tr><td>$clientid</td></tr>\n";
+            echo "<tr><td><form id='form$clientid' action='index.php?a=print' method='POST'>";
+            echo '<input type="hidden" name="jmsid" value="' . $clientid . '">';
+            echo "<a onclick='submitForm(\"form$clientid\")' href='#'>$clientid</a></form></td></tr>\n";
         }
     } catch (PDOException $e) {
         die("Query failed: " . $e->getMessage());
@@ -286,11 +309,41 @@ if($action=='login') {
     $pdo = null;
 } else if($action=='print') {
     // Display a page listing the questions and answers in a printer-friendly format.
-    $jmsid = $_POST['jmsid'];
+    $jmsid = getPostedClientId();
 ?>
     <span style="float:right">Client <span id='jmsid'><?php echo $jmsid;?></span></span>
     <h1>JMS Partners Career Exploration Exercise</h1>
-<?php
+    <table>
+<?php    
+    $pdo = connectDb();
+    $answers = getArrayOfAnswers($pdo, $jmsid);
+
+    // Fetch the questions and create the HTML displaying them.
+    $sql = "SELECT qnum, qtext FROM questions ORDER BY qnum";
+    try {
+        $stmt = $pdo->query($sql);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $qnum = $row['qnum'];
+            $qtext = $row['qtext'];
+
+            // Display this question and the answer.
+            echo "<tr><td class='qcolumn'>$qnum.</td>";
+            echo "<td><span>" . htmlentities($qtext) . ":</span> ";
+            echo "<span class='answerbox'>" . htmlentities($answers[$qnum]) . "</span>";
+            echo "</td></tr>\n";
+        }
+        // Create a button to return to editing.
+        echo "<tr><td></td><td><br/>";
+        echo '<form action="index.php?a=show" method="POST">';
+        echo '<input type="hidden" name="jmsid" value="' . $jmsid . '">';
+        echo '<input type="submit" class="button-3d" value="Edit Answers">';
+        echo '</form></td></tr>';
+    } catch (PDOException $e) {
+        die("Query failed: " . $e->getMessage());
+    }
+
+    // Close the database connection
+    $pdo = null;
 
 } // end of testing for various values of action
 ?>
