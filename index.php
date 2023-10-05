@@ -162,6 +162,22 @@ if($action == 'update') {
             content: ""; /* clears default height */
             margin-top: 4pt; /* change this to whatever height you want it */
         }
+
+        .last_update_div {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+        }
+        .last_update_p {
+            text-align: right;
+            font-family: Arial Narrow; 
+            font-size: 10pt;
+            color: grey;
+            width: 12em;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
     </style>
     <script>
         function onSubmitEnter() {
@@ -202,7 +218,14 @@ if($action == 'update') {
                 // for(idx in obj) {msg += " " + idx + '=' + obj[idx];}
                 // console.log("Update POST returned " + msg)
                 if(obj.hasOwnProperty('status')) {
-                    if(obj.status!=='ok') {
+                    if(obj.status=='ok') {
+                        // This answer was updated successfully on the server.
+                        // Display the time last updated at the bottom right.
+                        var d = new Date();
+                        var txtDate = d.toLocaleString();
+                        var msg = "Updated " + txtDate;
+                        document.getElementById("last_update").innerHTML = msg;
+                    } else {
                         alert("Error!  Server said: " + obj.status);
                     }
                 } else {
@@ -258,6 +281,10 @@ if($action=='login') {
 <p>Your answers will be saved as you work, so there is no need to "submit"
     the results. You can come back later to resume the exercise if you like.
 </p>
+<div class="last_update_div">
+    <!-- stuff -->
+    <p id="last_update" class="last_update_p"></p>
+</div>
 <table>
 
 <?php
