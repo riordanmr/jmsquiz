@@ -178,6 +178,37 @@ if($action == 'update') {
             bottom: 0;
             right: 0;
         }
+        /* Use a larger font, only on mobile devices.  Thanks to https://habr.com/en/sandbox/163605/ */
+        @media (pointer: coarse)  {
+            /* mobile device */
+            body {
+                font-size: 36pt;
+            }
+            h1 {font-size: 40pt;}
+            h2 {font-size: 30pt;}
+            .stuname {
+                font-size: 30pt;
+            }
+            .jmsid {
+                font-size: 24pt;
+            }
+            .answerbox {
+                font-size: 32pt;
+            }
+            .last_update_p {
+                font-size: 18pt;
+            }
+            .button-3d {
+                font-size: 26pt;
+            }
+            textarea {
+                -webkit-box-sizing: border-box;
+                -moz-box-sizing: border-box;
+                box-sizing: border-box;
+
+                width: 100%;
+            }
+        }        
     </style>
     <script>
         function onSubmitEnter() {
@@ -367,12 +398,18 @@ if($action=='login') {
             echo "<span class='answerbox'>" . $ans . "</span>";
             echo "</td></tr>\n";
         }
-        // Create a button to return to editing.
+        // Create buttons to return to editing and go home.
         echo "<tr><td></td><td><br/>";
-        echo '<form action="index.php?a=show" method="POST">';
+        echo '<form action="index.php?a=show" style="display:inline" method="POST">';
         echo '<input type="hidden" name="jmsid" value="' . $jmsid . '">';
         echo '<input type="submit" class="button-3d" value="Edit Answers">';
-        echo '</form></td></tr>';
+        echo '</form>';
+        echo ' &nbsp; &nbsp; ';
+        echo ' <form action="index.php?a=show" method="GET" style="display:inline">';
+        echo '<input type="submit" class="button-3d" value="Home">';
+        echo '</form>';
+        echo '</td>';
+        echo '</tr>';
     } catch (PDOException $e) {
         die("Query failed: " . $e->getMessage());
     }
