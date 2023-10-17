@@ -78,7 +78,7 @@ if($action == 'update') {
 
     // Retrieve the raw POST data
     $jsonData = file_get_contents('php://input');
-    error_log("Got JSON: $jsonData");
+    //error_log("Got JSON: $jsonData");
 
     // Decode the JSON data into a PHP associative array
     $data = json_decode($jsonData, true);
@@ -92,7 +92,7 @@ if($action == 'update') {
         $ansText = $data['ansText'];
         // Perform further processing or respond to the request
         $sql = "UPDATE answers SET $ansId = :ansText WHERE jmsid=:jmsid;";
-        error_log($sql);
+        //error_log($sql);
         try {
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':jmsid', $clientId, PDO::PARAM_STR);
