@@ -162,6 +162,9 @@ if($action == 'update') {
             content: ""; /* clears default height */
             margin-top: 4pt; /* change this to whatever height you want it */
         }
+        tr.printpadding>td {
+            padding-bottom: 6pt;
+        }
 
         .last_update_div {
             position: fixed;
@@ -391,7 +394,7 @@ if($action=='login') {
             $qtext = $row['qtext'];
 
             // Display this question and the answer.
-            echo "<tr><td class='qcolumn'>$qnum.</td>";
+            echo "<tr class='printpadding'><td class='qcolumn'>$qnum.</td>";
             echo "<td><span>" . htmlentities($qtext) . ":</span> ";
             $ans = htmlentities($answers[$qnum]);
             $ans = str_replace("\n","<br class='vspace'/>", $ans);
